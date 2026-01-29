@@ -10,4 +10,9 @@ class UserRepoImpl implements UserRepo {
   Future<List<Users>> getAllUsers(int page, int limit) {
     return dataservice.getUsers(page, limit);
   }
+
+  @override
+  List<Users> getCachedUsers() {
+    return dataservice.userBox.values.toList();
+  }
 }

@@ -18,10 +18,14 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   }
 
   void _getAllUsers(GetAllUsers event, Emitter<UserState> emit) async {
-    emit(state.copyWith(userStatus: UserStatus.loading));
     try {
       _page = 1;
-
+      final cachedUsers = repo.getCachedUsers();
+      if (cachedUsers.isNotEmpty) {
+        emit(state.copyWith(users: cachedUsers, userStatus: UserStatus.loaded));
+      } else {
+        emit(state.copyWith(userStatus: UserStatus.loading));
+      }
       final users = await repo.getAllUsers(_page, _limit);
       emit(
         state.copyWith(
