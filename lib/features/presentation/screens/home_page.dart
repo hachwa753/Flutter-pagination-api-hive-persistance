@@ -46,19 +46,25 @@ class _HomePageState extends State<HomePage> {
             if (state.users.isEmpty) {
               return Text("Empty users");
             }
-            return ListView.builder(
-              controller: _scrollController,
-              itemCount: state.users.length,
-              itemBuilder: (context, index) {
-                final user = state.users[index];
-                return Container(
-                  height: 200,
-                  width: double.infinity,
-                  child: Column(
-                    children: [Text(user.name), Text(user.address.city)],
-                  ),
-                );
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<UserBloc>().add(GetAllUsers());
               },
+              child: ListView.builder(
+                physics: AlwaysScrollableScrollPhysics(),
+                controller: _scrollController,
+                itemCount: state.users.length,
+                itemBuilder: (context, index) {
+                  final user = state.users[index];
+                  return Container(
+                    height: 200,
+                    width: double.infinity,
+                    child: Column(
+                      children: [Text(user.name), Text(user.address.city)],
+                    ),
+                  );
+                },
+              ),
             );
           }
 
