@@ -53,8 +53,11 @@ class _HomePageState extends State<HomePage> {
               child: ListView.builder(
                 physics: AlwaysScrollableScrollPhysics(),
                 controller: _scrollController,
-                itemCount: state.users.length,
+                itemCount: state.users.length + (state.isLoadingMore ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (index == state.users.length) {
+                    return Center(child: CircularProgressIndicator());
+                  }
                   final user = state.users[index];
                   return Container(
                     height: 200,
