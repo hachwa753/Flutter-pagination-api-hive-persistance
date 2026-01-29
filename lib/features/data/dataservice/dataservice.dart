@@ -15,6 +15,20 @@ class Dataservice {
   final Box<Users> userBox = Hive.box<Users>('usersBox');
 
   Future<List<Users>> getUsers(int page, int limit) async {
+    final cachedUsers = userBox.values.toList();
+
+    if (page == 1 && cachedUsers.isNotEmpty) {
+      //fecth api in background
+      _fetchFrmApi(page, limit);
+      return cachedUsers;
+    }
+
+    //otherwise fecth normally
+    return _fetchFrmApi(page, limit);
+  }
+
+  //helper function to fetch API
+  Future<List<Users>> _fetchFrmApi(int page, int limit) async {
     //  //try to get cached users first
     //   final cachedUsers = userBox.values.toList();
     //   if (cachedUsers.isNotEmpty) {
