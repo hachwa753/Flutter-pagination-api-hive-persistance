@@ -80,7 +80,8 @@ class UserBloc extends Bloc<UserEvent, UserState> {
             state.copyWith(
               users: updatedUsers,
               isLoadingMore: false,
-              hasReachedMax: apiUsers.length < (_page * _limit),
+              hasReachedMax: apiUsers.length < _limit,
+             // hasReachedMax: apiUsers.length < (_page * _limit),
             ),
           );
         },
