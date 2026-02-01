@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/adapters.dart';
-import 'package:hivecaching/features/data/dataservice/dataservice.dart';
+import 'package:hivecaching/features/data/datasource/api_service.dart';
+import 'package:hivecaching/features/data/datasource/local_service.dart';
 import 'package:hivecaching/features/data/repo/user_repo_impl.dart';
 import 'package:hivecaching/features/domain/model/address.dart';
 import 'package:hivecaching/features/domain/model/users.dart';
@@ -15,20 +16,23 @@ void main() async {
   Hive.registerAdapter(AddressAdapter());
 
   await Hive.openBox<Users>('usersBox');
-  runApp(const MyApp());
+  // Initialize services
+  final apiService = ApiService();
+  final localService = LocalService();
+  final userRepo = UserRepoImpl(apiService, localService);
+  runApp(MyApp(userRepo: userRepo));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final UserRepoImpl userRepo;
+  const MyApp({super.key, required this.userRepo});
 
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create:
-              (context) =>
-                  UserBloc(UserRepoImpl(Dataservice()))..add(GetAllUsers()),
+          create: (context) => UserBloc(userRepo)..add(GetAllUsers()),
         ),
       ],
       child: MaterialApp(debugShowCheckedModeBanner: false, home: HomePage()),

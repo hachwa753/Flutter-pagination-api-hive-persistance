@@ -1,5 +1,5 @@
-import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hivecaching/features/domain/model/users.dart';
 import 'package:hivecaching/features/domain/repo/user_repo.dart';
 
@@ -20,19 +20,35 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   void _getAllUsers(GetAllUsers event, Emitter<UserState> emit) async {
     try {
       _page = 1;
+
+      //emit cached users instantly
       final cachedUsers = repo.getCachedUsers();
       if (cachedUsers.isNotEmpty) {
         emit(state.copyWith(users: cachedUsers, userStatus: UserStatus.loaded));
       } else {
         emit(state.copyWith(userStatus: UserStatus.loading));
       }
-      final users = await repo.getAllUsers(_page, _limit);
-      emit(
-        state.copyWith(
-          users: users,
-          userStatus: UserStatus.loaded,
-          hasReachedMax: users.length < _limit,
-        ),
+      //fetch fresh api users
+      final result = await repo.getAllUsers(_page, _limit);
+
+      result.fold(
+        (failure) {
+          emit(state.copyWith(userStatus: UserStatus.failure, msz: failure));
+        },
+        (apiUsers) {
+          // Merge with cached users to prevent duplicates
+          final mergedUsers = [
+            ...cachedUsers,
+            ...apiUsers.where((u) => !cachedUsers.any((c) => c.id == u.id)),
+          ];
+          emit(
+            state.copyWith(
+              users: mergedUsers,
+              userStatus: UserStatus.loaded,
+              hasReachedMax: apiUsers.length < _limit,
+            ),
+          );
+        },
       );
     } catch (e) {
       emit(state.copyWith(userStatus: UserStatus.failure, msz: e.toString()));
@@ -49,14 +65,25 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     _page++;
 
     try {
-      final users = await repo.getAllUsers(_page, _limit);
-
-      emit(
-        state.copyWith(
-          users: users,
-          isLoadingMore: false,
-          hasReachedMax: users.length < (_page * _limit),
-        ),
+      final result = await repo.getAllUsers(_page, _limit);
+      result.fold(
+        (failure) {
+          emit(state.copyWith(isLoadingMore: false));
+        },
+        (apiUsers) {
+          // Merge with existing state users
+          final updatedUsers = [
+            ...state.users,
+            ...apiUsers.where((u) => !state.users.any((e) => e.id == u.id)),
+          ];
+          emit(
+            state.copyWith(
+              users: updatedUsers,
+              isLoadingMore: false,
+              hasReachedMax: apiUsers.length < (_page * _limit),
+            ),
+          );
+        },
       );
     } catch (e) {
       emit(state.copyWith(isLoadingMore: false));
